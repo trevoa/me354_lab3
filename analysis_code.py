@@ -50,6 +50,44 @@ class Rod():
         self.data['Force (N)'] = self.data['Force (kgf)'] * 9.81
         self.data['Torque (Nm)'] = self.data['Force (N)'] * (213 / 85) * 0.0523
 
+        # Initialize some empty variables
+        eTorque = []
+        pTorque = []
+        theoreticalTorque = []
+
+        for i in range(len(self.data['Angle (rad)'])):
+            # Create dummy variables to make the code look cleaner
+            r_y = self.data['Theoretical Yield Radius (m)'].values[i]
+            theta = self.data['Angle (rad)'].values[i]
+
+            # Run the functions we defined above
+            eTorque += [self.elasticTorque(r_y, theta)]  # The += here is adding values to the list, e.g. a=[1]; a+=[2] -> a=[1,2]
+            pTorque += [self.plasticTorque(r_y, theta)]
+            theoreticalTorque += [self.elasticPlasticTorque(r_y, theta)]
+
+        # And include the values in a Pandas dataframe
+        self.data['Theoretical Elastic Torque (Nm)'] = eTorque
+        self.data['Theoretical Plastic Torque (Nm)'] = pTorque
+        self.data['Theoretical Torque (Nm)'] = theoreticalTorque
+
+    # Finish these functions for the elastic and plastic components of torque
+    def elasticTorque(self, r_y, theta):
+        if r_y > R:
+            T_Elastic =  (self.G_th * theta * J) / L
+        else:
+            T_Elastic = (pi * self.tau_y * (r_y ** 3)) / 2
+        return T_Elastic
+
+    def plasticTorque(self, r_y, theta):
+        if r_y > R:
+            T_Plastic =  0
+        else:
+            T_Plastic =  ((2 * pi * self.H) / ((3 ** 0.5) * (self.n + 3))) * ((theta / ((3 ** 0.5) * L)) ** self.n) * ((R ** (self.n +3)) - (r_y ** (self.n + 3 )))
+        return T_Plastic
+
+    def elasticPlasticTorque(self, r_y, theta):
+        T = self.elasticTorque(r_y, theta) + self.plasticTorque(r_y, theta)
+        return T
 
     def maxShearStress(self, torque, R, J):
         tauMax = (torque * R) / J  ##equation for the max shear stress based on the torque in the elastic region##
